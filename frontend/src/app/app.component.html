@@ -1,0 +1,72 @@
+<div class="px-4 py-5 my-5 text-center">
+  <h1 class="display-5 fw-bold">{{title}}</h1>
+  <div class="col-lg-6 mx-auto">
+    <p class="lead mb-4"> Hello world.</p>
+    <p class="lead mb-4" *ngIf="lastBlockNumber">The last block in the blockchain is {{lastBlockNumber}}</p>
+    <p class="lead mb-4" *ngIf="clicks">You have clicked {{clicks}}</p>
+    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+      <button
+        type="button"
+        (click)="countClicks(numberIncrement.value)"
+        class="btn btn-primary btn-lg btn-danger px-4 gap-3">
+        Click me
+      </button>
+      <input
+        #numberIncrement
+        class="form-control mt-4"
+        type="number"
+        placeholder="0"
+        aria-label="number increment input"
+      />
+    </div>
+    <br>
+    <p>To use ballot, you need to connect a wallet</p>
+    <br>
+    <div *ngIf="!wallet" class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+      <button (click)="createWallet()" )
+              type="button"
+              class="btn btn-success btn-lg px-4">
+        Create wallet
+      </button>
+      <button type="button" disabled class="btn btn-info btn-lg px-4">
+        Import wallet
+      </button>
+      <button type="button" disabled class="btn btn-danger btn-lg px-4">
+        Connect wallet
+      </button>
+    </div>
+    <div *ngIf="wallet" class="col-lg-6 mx-auto">
+      You are now connected to the wallet {{wallet.address}}
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <div class="card">My ether balance is: {{etherBalance}}</div>
+      </div>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <div class="card">My token balance is: {{tokenBalance}}</div>
+      </div>
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+        <div class="card">My Voting power is: {{votePower}}</div>
+      </div>
+      <p>Claim your tokens here:</p>
+      <button
+        type="button"
+        (click)="claimTokens()"
+        class="btn btn-primary btn-lg btn-danger px-4 gap-3">
+        Claim tokens
+      </button>
+      <p>Connect to ballot here:</p>
+      <input
+        #ballotAddress
+        class="form-control mt-4"
+        type="number"
+        placeholder="Paste contract address here"
+        aria-label="number increment input"
+      />
+      <button
+        type="button"
+        (click)="connectBallot(ballotAddress.value)"
+        class="btn btn-primary btn-lg btn-danger px-4 gap-3">
+        Connect ballot
+      </button>
+    </div>
+  </div>
+</div>
