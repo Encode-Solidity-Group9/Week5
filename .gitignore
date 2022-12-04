@@ -1,0 +1,5 @@
+/backend/node_modules
+/backend/.yarn
+/backend/cache
+
+.DS_Store
