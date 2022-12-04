@@ -3,3 +3,7 @@
 /backend/cache
 
 .DS_Store
+
+/frontend/.yarn
+/frontend/.angular
+/frontend/node_modules
