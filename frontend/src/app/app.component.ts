@@ -1,79 +1,151 @@
-import {Component} from '@angular/core';
-import {ethers} from "ethers";
-import tokenJson from '../assets/MyToken.json';
+import { Component } from '@angular/core';
+import { ethers } from 'ethers';
 import { HttpClient } from '@angular/common/http';
-
-const TOKENIZED_VOTES_ADDRESS = "1x111111";
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
+  styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
-  title = 'Example-Title';
-  myNumber = 42;
-  lastBlockNumber: number | undefined;
-  clicks = 0;
+  title = 'Bet and Win Promotion!';
+  betsOpen = false;
+  ETHbalance: string | undefined;
   wallet: ethers.Wallet | undefined;
-  provider: ethers.providers.Provider;
   etherBalance: number | undefined;
-  tokenBalance: number | undefined;
-  votePower: number | undefined;
-  tokenContract: ethers.Contract | undefined;
-  minterWallet: ethers.Wallet;
-  tokenAddress: string | undefined;
   http: HttpClient;
+  provider: ethers.providers.Provider;
+  state: boolean | undefined;
+  lotteryState = 'closed';
+  closingTimeDate: Date | undefined;
+  lotteryAddress: string | undefined;
+  tokenBalance: string | undefined;
+  betTxAddress: string | undefined;
+  closedTxAddress: string | undefined;
+  betPrize: string | undefined;
+  betPrizeAccount: string | undefined;
+  withdrawalTxHash: string | undefined;
+  burnTokensTxHash: string | undefined;
 
   constructor(http: HttpClient) {
-    ethers
-      .getDefaultProvider('goerli')
-      .getBlock('latest')
-      .then((block) => (this.lastBlockNumber = block.number));
-    this.provider = ethers.providers.getDefaultProvider('goerli');
-    this.minterWallet = ethers.Wallet.fromMnemonic('askjdfkjasdlkj');
     this.http = http;
+    //this.wallet = ethers.Wallet.fromMnemonic(environment.mnemonic); // This is to come from backend somehow, put mnemonic in environment file
+    this.provider = ethers.providers.getDefaultProvider('goerli');
   }
 
-  countClicks(increment: string) {
-    this.clicks += parseInt(increment);
+  checkState() {
+    this.http.get<any>('http://localhost:3000/check-state').subscribe((ans) => {
+      this.state = ans.result;
+      if (this.state) {
+        this.lotteryState = 'open';
+        this.closingTimeDate = ans.result.closingTimeDate;
+        this.betsOpen = true;
+      } else {
+        this.lotteryState = 'closed';
+        this.closingTimeDate = undefined;
+        this.betsOpen = false;
+      }
+    });
   }
 
-  createWallet() {
+  openBets() {
+    const duration = prompt('How long should bets be open for? (in seconds)');
+    if (duration) {
+      this.http
+        .post<any>('http:localhost:3000/open-bets', { duration: duration })
+        .subscribe((ans) => {
+          this.lotteryAddress = ans;
+          if (this.lotteryAddress) {
+            this.checkState();
+            setTimeout(() => this.closeBets(), parseInt(duration as string));
+          } else {
+            alert(
+              "Oops, it's not you, it's us. Most likely bets are already open, please check the state!"
+            );
+          }
+        });
+    } else {
+      alert('A valid duration (in seconds) is required to open bets.');
+    }
+  }
+
+  closeBets() {
+    this.http.get<any>('http://localhost/close-lottery').subscribe((ans) => {
+      this.closedTxAddress = ans.result;
+      if (this.closedTxAddress) {
+        alert('Bets successfully closed!');
+        this.checkState();
+      }
+    });
+  }
+
+  topUpAccount(index: number) {
+    const indexAccount = prompt('WHich account index do you want to use?');
+    const numberOfTokens = prompt('Buy how many tokens?');
     this.http
-      .get<any>('http://localhost:3000/token-address')
+      .post<any>('http://localhost:3000/topup-tokens', {
+        index: indexAccount,
+        numberOfTokens: numberOfTokens,
+      })
       .subscribe((ans) => {
-        this.tokenAddress = ans.result;
-        if (this.tokenAddress) {
-          this.wallet = ethers.Wallet.createRandom().connect(this.provider);
-          this.tokenContract = new ethers.Contract(
-            TOKENIZED_VOTES_ADDRESS,
-            tokenJson.abi,
-            this.wallet
-          );
-          this.wallet.getBalance().then((balanceBN: ethers.BigNumberish) => {
-            this.etherBalance = parseFloat(ethers.utils.formatEther(balanceBN));
-          });
-          this.tokenContract['balanceOf'](this.wallet.address).then(
-            (balanceBN: ethers.BigNumberish) => {
-              this.etherBalance = parseFloat(
-                ethers.utils.formatEther(balanceBN)
-              );
-            }
-          );
+        this.tokenBalance = ans.result;
+      });
+  }
+
+  placeBets() {
+    const accountIndex = prompt('Which account (index) do you want to use?');
+    const numberOfBets = prompt('Bet how many times?');
+    this.http
+      .post<any>('http://localhost:3000/topup-tokens', {
+        index: accountIndex,
+        numberOfBets: numberOfBets,
+      })
+      .subscribe((ans) => {
+        if (ans.result) {
+          this.tokenBalance = ans.result.tokenBalance;
+          this.betTxAddress = ans.result.betTxAddress;
+        } else {
+          alert('Oops, there was an error! Check your token balance.');
         }
       });
   }
 
-  claimTokens() {}
-
-  connectBallot(address: string) {
-    this.getBallotInfo();
+  checkPrize() {
+    const accountIndex = prompt('Which account (index) do you want to use?');
+    this.http
+      .post<any>('http://localhost/close-lottery', { index: accountIndex })
+      .subscribe((ans) => {
+        this.betPrize = ans.result.prize;
+        this.betPrizeAccount = ans.result.betPrizeAccount;
+      });
   }
 
-  delegate() {}
+  withdraw() {
+    const numberOfTokens = prompt('How many tokens to withdraw?');
+    this.http.post<any>('http://localhost:3000/withdraw', { tokens: numberOfTokens})
+    .subscribe((ans) => {
+      if (ans) {
+        this.withdrawalTxHash = ans.transactionHash;
+        this.checkTokenBalance();
+      }
+    })
+  }
 
-  castVote() {}
+  checkTokenBalance() {
+    this.http.get<any>('http://localhost:3000/get-balance/0')
+    .subscribe((ans) => {
+      this.tokenBalance = ans.balance;
+    })
+  }
 
-  getBallotInfo() {}
+  burnTokens() {
+    const accountIndex = prompt('Which account (index) do you want to use?');
+    const numberOfTokens = prompt('Burn how many tokens?');
+    this.http
+      .post<any>('http://localhost:3000/burn-tokens', {index: accountIndex, tokens: numberOfTokens})
+      .subscribe((ans) => {
+        this.burnTokensTxHash = ans.transactionHash;
+      });
+  }
 }

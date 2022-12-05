@@ -1,72 +1,88 @@
-<div class="px-4 py-5 my-5 text-center">
-  <h1 class="display-5 fw-bold">{{title}}</h1>
-  <div class="col-lg-6 mx-auto">
-    <p class="lead mb-4"> Hello world.</p>
-    <p class="lead mb-4" *ngIf="lastBlockNumber">The last block in the blockchain is {{lastBlockNumber}}</p>
-    <p class="lead mb-4" *ngIf="clicks">You have clicked {{clicks}}</p>
-    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+<div class="h-screen w-screen">
+  <h1 class="text-center text-6xl text-[#620000] font-bold mt-14 mb-10">
+    {{ title }}
+  </h1>
+  <p class="text-2xl text-center pb-2">The lottery is currently {{ lotteryState }}.</p>
+
+  <p *ngIf="tokenBalance" class="text-2xl text-center py-3">You have {{ tokenBalance }} tokens in your account. Place some bets!</p>
+  <p *ngIf="!tokenBalance" class="text-2xl text-center py-3">You have 0 tokens in your account. Top up to place bets.</p>
+
+  <p *ngIf="lotteryAddress" class="text-2xl text-center py-3">Lottery Contract is at address {{ lotteryAddress }}</p>
+
+  <div *ngIf="state" class='flex justify-center flex-col'>
+    <p class="py-3 text-2xl text-center">
+      The lottery should close at {{ closingTimeDate }}
+    </p>
+    <div class="flex flex-row justify-center items-center py-8 space-x-10">
       <button
         type="button"
-        (click)="countClicks(numberIncrement.value)"
-        class="btn btn-primary btn-lg btn-danger px-4 gap-3">
-        Click me
+        (click)="topUpAccount(0)"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Top Tokens
       </button>
-      <input
-        #numberIncrement
-        class="form-control mt-4"
-        type="number"
-        placeholder="0"
-        aria-label="number increment input"
-      />
-    </div>
-    <br>
-    <p>To use ballot, you need to connect a wallet</p>
-    <br>
-    <div *ngIf="!wallet" class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-      <button (click)="createWallet()" )
-              type="button"
-              class="btn btn-success btn-lg px-4">
-        Create wallet
-      </button>
-      <button type="button" disabled class="btn btn-info btn-lg px-4">
-        Import wallet
-      </button>
-      <button type="button" disabled class="btn btn-danger btn-lg px-4">
-        Connect wallet
-      </button>
-    </div>
-    <div *ngIf="wallet" class="col-lg-6 mx-auto">
-      You are now connected to the wallet {{wallet.address}}
-      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <div class="card">My ether balance is: {{etherBalance}}</div>
-      </div>
-      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <div class="card">My token balance is: {{tokenBalance}}</div>
-      </div>
-      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <div class="card">My Voting power is: {{votePower}}</div>
-      </div>
-      <p>Claim your tokens here:</p>
       <button
         type="button"
-        (click)="claimTokens()"
-        class="btn btn-primary btn-lg btn-danger px-4 gap-3">
-        Claim tokens
+        (click)="checkPrize()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Check Prize
       </button>
-      <p>Connect to ballot here:</p>
-      <input
-        #ballotAddress
-        class="form-control mt-4"
-        type="number"
-        placeholder="Paste contract address here"
-        aria-label="number increment input"
-      />
       <button
         type="button"
-        (click)="connectBallot(ballotAddress.value)"
-        class="btn btn-primary btn-lg btn-danger px-4 gap-3">
-        Connect ballot
+        (click)="withdraw()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Withdraw Tokens
+      </button>
+      <button
+        type="button"
+        (click)="closeBets()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Close Bets
+      </button>
+      <button
+        type="button"
+        (click)="burnTokens()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Burn Tokens
       </button>
     </div>
   </div>
+
+  <div *ngIf="!state" class='flex justify-center flex-col'>
+    <div class="flex flex-row justify-center items-center py-8 space-x-10">
+      <button
+        type="button"
+        (click)="topUpAccount(0)"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg bg-gradient-to-r"
+      >
+        Top Tokens
+      </button>
+      <button
+        type="button"
+        (click)="openBets()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Open Bets
+      </button>
+      <button
+        type="button"
+        (click)="checkPrize()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Check Prize
+      </button>
+      <button
+        type="button"
+        (click)="burnTokens()"
+        class="py-4 px-7 bg-[#800000] text-white rounded-lg"
+      >
+        Burn Tokens
+      </button>
+    </div>
+  </div>
+
 </div>

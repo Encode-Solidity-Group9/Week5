@@ -1,9 +1,13 @@
 /backend/node_modules
 /backend/.yarn
 /backend/cache
-
+/backend/.idea
 .DS_Store
 
 /frontend/.yarn
-/frontend/.angular
+/frontend/.angular/cache
 /frontend/node_modules
+/frontend/.vscode/*
+
+/frontend/.env
+/frontend/src/environments/environment.ts
