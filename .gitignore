@@ -11,3 +11,8 @@
 
 /frontend/.env
 /frontend/src/environments/environment.ts
+/backend_redux/node_modules/
+/.idea/
+
+/backend/src/environments/
+/backend_redux/

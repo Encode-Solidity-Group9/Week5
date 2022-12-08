@@ -97,7 +97,7 @@ export class AppComponent {
     const accountIndex = prompt('Which account (index) do you want to use?');
     const numberOfBets = prompt('Bet how many times?');
     this.http
-      .post<any>('http://localhost:3000/topup-tokens', {
+        .post<any>('http://localhost:3000/place-bets', {
         index: accountIndex,
         numberOfBets: numberOfBets,
       })
@@ -114,7 +114,7 @@ export class AppComponent {
   checkPrize() {
     const accountIndex = prompt('Which account (index) do you want to use?');
     this.http
-      .post<any>('http://localhost/close-lottery', { index: accountIndex })
+      .post<any>('http://localhost/check-prize', { index: accountIndex })
       .subscribe((ans) => {
         this.betPrize = ans.result.prize;
         this.betPrizeAccount = ans.result.betPrizeAccount;
@@ -133,7 +133,7 @@ export class AppComponent {
   }
 
   checkTokenBalance() {
-    this.http.get<any>('http://localhost:3000/get-balance/0')
+    this.http.get<any>('http://localhost:3000/get-balance')
     .subscribe((ans) => {
       this.tokenBalance = ans.balance;
     })
