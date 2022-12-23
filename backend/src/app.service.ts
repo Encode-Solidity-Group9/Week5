@@ -2,130 +2,96 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import * as tokenJson from './assets/MyToken.json';
-import {BetsOrderDto, TopUpTokensDto} from "./app.controller";
+import * as lotteryJson from './assets/Lottery.json';
+import { BetsOrderDto, TopUpTokensDto } from './app.controller';
 
-export class PaymentOrderModel {
-  id: number;
-  secret: string;
-  value: number;
-}
-
-const TOKENIZED_VOTES_ADDRESS = '0x0247081438196312861593684370827845';
+const TOKENIZED_LOTTERY_ADDRESS = '0xBDABC9564886E68D3d57faec9B2E8C53F12F612F';
+const LOTTERY_CONTRACT_ADDRESS = '0x73A76b3f8Ff6A8614F175655e9cEC757fd76e6b2';
 
 @Injectable()
 export class AppService {
   provider;
-  paymentOrders: PaymentOrderModel[];
+  lotteryContract;
 
   constructor(private configService: ConfigService) {
-    this.provider = ethers.getDefaultProvider('goerli');
-    this.paymentOrders = [];
+    this.provider = ethers.getDefaultProvider('sepolia');
+    this.lotteryContract = new ethers.Contract(
+      LOTTERY_CONTRACT_ADDRESS,
+      lotteryJson.abi,
+      this.provider,
+    );
   }
 
-  getHello(): string {
-    return 'Hello World!';
+  async checkState() {
+    return await this.lotteryContract.betsOpen;
   }
 
-  getAnother(): string {
-    return 'Another method';
+  async openBets(duration: number) {
+    return await this.lotteryContract.openBets(duration);
   }
 
-  getBlock(hash: string): Promise<ethers.providers.Block> {
-    const providers = this.provider;
-    return providers.getBlock(hash);
+  async closeLottery() {
+    return this.lotteryContract.closeBets();
   }
 
-  async getLastBlock(): Promise<ethers.providers.Block> {
-    const providers = this.provider;
-    return providers.getBlock('latest');
+  async getTokenBalance(wallet: string) {
+    return await this.lotteryContract.balanceOf(wallet);
   }
 
-  async getTotalSupply(address: string) {
-    const contract = new ethers.Contract(address, tokenJson.abi, this.provider);
-    const bigNumber = await contract.totalSupply();
-    return ethers.utils.formatEther(bigNumber);
-  }
-
-  async getAllowance(address: string, owner: string, spender: string) {
-    const contract = new ethers.Contract(address, tokenJson.abi, this.provider);
-    const bigNumber = await contract.allowance(owner, spender);
-    return ethers.utils.formatEther(bigNumber);
-  }
-
-  getPaymentOrder(id: string) {
-    return { id: id, value: this.paymentOrders[id].value };
-  }
-
-  createPaymentOrder(secret: string, value: number) {
-    const newPaymentOrder = new PaymentOrderModel();
-    newPaymentOrder.secret = secret;
-    newPaymentOrder.value = value;
-    newPaymentOrder.id = this.paymentOrders.length;
-    this.paymentOrders.push(newPaymentOrder);
-    return newPaymentOrder.id;
-  }
-
-  async claimPaymentOrder(id: number, secret: string, address: string) {
-    if (this.paymentOrders[id].secret != secret)
-      throw new HttpException('Wrong secret!', 403);
-    const seed = this.configService.get<string>('MNEMONIC');
-    const contractAddress = this.configService.get<string>('MNEMONIC');
-    const wallet = ethers.Wallet.fromMnemonic(seed);
+  async topUpTokens(topUp: TopUpTokensDto) {
+    //should be taken from the FE and not be hardcoded here
+    const privateKey = this.configService.get<string>('MNEMONICS');
+    const wallet = new ethers.Wallet(privateKey);
     const signer = wallet.connect(this.provider);
-    const signedContract = new ethers.Contract(
-      contractAddress,
+    const tokenContract = new ethers.Contract(
+      TOKENIZED_LOTTERY_ADDRESS,
       tokenJson.abi,
       signer,
     );
-    const transaction = await signedContract.mint(
-      address,
-      ethers.utils.parseEther(this.paymentOrders[id].value.toString()),
+    const mintAmount = ethers.utils.parseEther('0.001');
+    const transaction = await tokenContract.mint(
+      topUp.indexAccount,
+      mintAmount,
     );
-    return transaction.wait();
+    await transaction.wait();
+    console.log(`transaction hash: ${transaction}`);
+    return transaction.hash;
   }
 
-  async claimTokens(address: string) {
-    //build contract object
-    //pick the signer using .env keys
-    // connect the contract object to the signer
-    // make the transaction to mint tokens
-    //await the transaction, get the receipt, return the hash
-    return { result: `transaction hash for tokens minted for ${address}` };
+  async burnTokens(tokensToBurn: TopUpTokensDto) {
+    this.lotteryContract.burnTokens(tokensToBurn.numberOfTokens);
   }
 
-  getTokenAddress() {
-    return { result: TOKENIZED_VOTES_ADDRESS };
+  async placeBets(betsOrderDto: BetsOrderDto) {
+    //todo check if customer has tokens and if not enough, buy the necessary amount
+    //should be taken from the FE and not be hardcoded here
+    const privateKey = this.configService.get<string>('MNEMONICS');
+    const wallet = new ethers.Wallet(privateKey);
+    const signer = wallet.connect(this.provider);
+    const tokenContract = new ethers.Contract(
+      TOKENIZED_LOTTERY_ADDRESS,
+      tokenJson.abi,
+      signer,
+    );
+    //todo calculate how many tokens the user needs to have to place a bet
+    const mintAmount = ethers.utils.parseEther('0.001');
+    const transaction = await tokenContract.mint(
+      betsOrderDto.indexAccount,
+      mintAmount,
+    );
+    //todo handle cases where the transaction has been canceled
+    await transaction.wait();
+    console.log(`transaction hash: ${transaction}`);
+    //now that the user has token to use at the lottery, he/she could place a bet
+    this.lotteryContract.betMany(betsOrderDto.numberOfBets);
   }
 
-  checkState() {}
-
-  openBets(duration: number) {}
-
-  closeLottery() {
-    
+  async prizeWithdraw(tokens: number) {
+    //should use the customer's wallet
+    await this.lotteryContract.prizeWithdraw(tokens);
   }
 
-  getTokenBalance() {
-    
-  }
-
-  topUpTokens(topUp: TopUpTokensDto) {
-    
-  }
-
-  burnTokens(tokensToBurn: TopUpTokensDto) {
-    
-  }
-
-  placeBets(betsOrderDto: BetsOrderDto) {
-    
-  }
-
-  withdraw(tokens: number) {
-    
-  }
-
-  checkPrize(accountIndex: number) {
-    
+  async checkPrize(accountIndex: number) {
+    return await this.lotteryContract.prizePool;
   }
 }
